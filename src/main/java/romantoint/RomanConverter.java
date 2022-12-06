@@ -59,10 +59,13 @@ public class RomanConverter
             {
                 value += token.getValue();
                 input = substractToken(token, input);
+                if (input.isEmpty())
+                {
+                    return value;
+                }
             }
-
         }
-        return value;
+        throw new IllegalArgumentException(String.format("'%s' contains invalid roman numbers!", s));
     }
 
     private String substractToken(Token token, String input)

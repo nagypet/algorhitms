@@ -12,8 +12,9 @@ class RomanConverterTest
     void romanToInt()
     {
         RomanConverter converter = new RomanConverter();
-        Assertions.assertEquals(3, converter.romanToInt("III"));
-        Assertions.assertEquals(58, converter.romanToInt("LVIII"));
-        Assertions.assertEquals(1994, converter.romanToInt("MCMXCIV"));
+        assertEquals(3, converter.romanToInt("III"));
+        assertEquals(58, converter.romanToInt("LVIII"));
+        assertEquals(1994, converter.romanToInt("MCMXCIV"));
+        assertThrows(IllegalArgumentException.class, () -> converter.romanToInt("alma"));
     }
 }
