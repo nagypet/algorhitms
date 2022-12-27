@@ -9,6 +9,10 @@ repositories {
     mavenCentral()
 }
 
+ext {
+    set('spvitaminVersion', '1.7.2-RELEASE')
+}
+
 dependencies {
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.24'
@@ -16,8 +20,16 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
 
+    // Slf4J
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.30'
+
+    testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.10'
+    testImplementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.10'
+
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    testImplementation 'com.google.guava:guava:31.1-jre'
+    testImplementation "hu.perit.spvitamin:spvitamin-core:${spvitaminVersion}"
 }
 
 test {
