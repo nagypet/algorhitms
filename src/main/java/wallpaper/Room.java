@@ -52,6 +52,6 @@ public class Room
 
     public boolean isCubic()
     {
-        return this.length.equals(this.width);
+        return this.length.equals(this.width) && this.length.equals(this.height);
     }
 }
