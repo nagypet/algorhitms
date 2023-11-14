@@ -1,0 +1,80 @@
+/*
+ * Copyright 2020-2023 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package updatableconcurrentmap;
+
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
+
+@Slf4j
+public class UpdatableConcurrentMap<K, V extends UpdatableEntity>
+{
+    private final ConcurrentMap<K, ReentrantReadWriteLock> locks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<K, V> values = new ConcurrentHashMap<>();
+
+
+    public V get(K key)
+    {
+        ReentrantReadWriteLock lock = this.locks.get(key);
+        try (var l = new ClosableLock((lock != null) ? lock.readLock() : null))
+        {
+            return this.values.get(key);
+        }
+    }
+
+
+    public V update(K key, Supplier<V> supplier)
+    {
+        // Create a new lock for the current entry, to block subsequent get() operations during the update.
+        ReentrantReadWriteLock lock = this.locks.computeIfAbsent(key, k -> new ReentrantReadWriteLock());
+        try (var l = new ClosableLock(lock.writeLock()))
+        {
+            // This check is necessary when more than one thread are waiting on this lock, to avoid calling the supplier more than ones. The first thread
+            // calls the supplier function and puts the refreshed value into the map. The next one gets the value from the map, and finds - most probably -
+            // that this is already valid.
+            V cachedValue = this.values.get(key);
+            if (isEntityValid(cachedValue))
+            {
+                return cachedValue;
+            }
+
+            log.info("--> Calling supplier function for {} ...", key);
+            V value = supplier.get();
+            log.info("<-- value supplied: {}", value);
+            this.values.put(key, value);
+            return value;
+        }
+        finally
+        {
+            this.locks.remove(key);
+        }
+    }
+
+
+    private boolean isEntityValid(V value)
+    {
+        if (value == null)
+        {
+            return false;
+        }
+
+        return value.isValid();
+    }
+}
