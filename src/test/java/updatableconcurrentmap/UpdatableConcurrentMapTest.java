@@ -32,19 +32,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 @Slf4j
 class UpdatableConcurrentMapTest
 {
-    public static final int THRESHOLD = 20;
     public static final int COUNT_PARALLEL_EXECUTORS = 10;
     public static final int COUNT_TOKEN_IDS = 10;
 
     private final UpdatableConcurrentMap<Long, Token> tokenCache = new UpdatableConcurrentMap<>();
 
     private final CountDownLatch latch = new CountDownLatch(1);
+
+    private AtomicLong countWaiting = new AtomicLong(0);
 
 
     @Test
@@ -98,7 +100,8 @@ class UpdatableConcurrentMapTest
 
     private Token getToken(Long tokenId)
     {
-        log.debug("getToken({}) IN", getTokenImage(tokenId));
+        incrementWaiting(tokenId);
+        logIn(tokenId);
 
         Took took = null;
         Token token = null;
@@ -110,9 +113,53 @@ class UpdatableConcurrentMapTest
         }
         finally
         {
-            String marker = tokenId == 5 ? "<== " : "";
-            log.debug("getToken({}) {}OUT took {} ms - {}", getTokenImage(tokenId), marker, took.getDuration(),
-                token != null ? token.getInfo() : "");
+            decrementWaiting(tokenId);
+            logOut(token, took.getDuration());
+        }
+    }
+
+
+    private void incrementWaiting(Long tokenId)
+    {
+        if (tokenId == 5)
+        {
+            this.countWaiting.incrementAndGet();
+        }
+    }
+
+
+    private void decrementWaiting(Long tokenId)
+    {
+        if (tokenId == 5)
+        {
+            this.countWaiting.decrementAndGet();
+        }
+    }
+
+
+    private void logIn(Long tokenId)
+    {
+        if (tokenId == 5)
+        {
+            log.debug("getToken({}) <== IN, waiting: {}", getTokenImage(tokenId), this.countWaiting.get());
+        }
+        else
+        {
+            log.debug("getToken({}) IN", getTokenImage(tokenId));
+        }
+    }
+
+
+    private void logOut(Token token, long duration)
+    {
+        if (token.getId() == 5)
+        {
+            log.debug("getToken({}) <== OUT took {} ms - {}, waiting: {}", getTokenImage(token.getId()), duration,
+                token.getInfo(), this.countWaiting.get());
+        }
+        else
+        {
+            log.debug("getToken({}) OUT took {} ms - {}", getTokenImage(token.getId()), duration, token.getInfo());
         }
     }
 

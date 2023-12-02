@@ -20,20 +20,19 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 @Slf4j
 public class UpdatableConcurrentMap<K, V extends UpdatableEntity>
 {
-    private final ConcurrentMap<K, ReentrantReadWriteLock> locks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<K, ReentrantLock> locks = new ConcurrentHashMap<>();
     private final ConcurrentMap<K, V> values = new ConcurrentHashMap<>();
 
 
     public V get(K key)
     {
-        ReentrantReadWriteLock lock = this.locks.get(key);
-        try (var l = new ClosableLock((lock != null) ? lock.readLock() : null))
+        try (var l = new ClosableLock(this.locks.get(key)))
         {
             return this.values.get(key);
         }
@@ -43,8 +42,8 @@ public class UpdatableConcurrentMap<K, V extends UpdatableEntity>
     public V update(K key, Supplier<V> supplier)
     {
         // Create a new lock for the current entry, to block subsequent get() operations during the update.
-        ReentrantReadWriteLock lock = this.locks.computeIfAbsent(key, k -> new ReentrantReadWriteLock());
-        try (var l = new ClosableLock(lock.writeLock()))
+        ReentrantLock lock = this.locks.computeIfAbsent(key, k -> new ReentrantLock());
+        try (var l = new ClosableLock(lock))
         {
             // This check is necessary when more than one thread are waiting on this lock, to avoid calling the supplier more than ones. The first thread
             // calls the supplier function and puts the refreshed value into the map. The next one gets the value from the map, and finds - most probably -
