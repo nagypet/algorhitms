@@ -19,9 +19,11 @@ package updatableconcurrentmap;
 import hu.perit.spvitamin.core.took.Took;
 import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -46,7 +48,32 @@ class UpdatableConcurrentMapTest
 
     private final CountDownLatch latch = new CountDownLatch(1);
 
-    private AtomicLong countWaiting = new AtomicLong(0);
+    private final List<AtomicLong> countWaiting = new ArrayList<>();
+
+    @Getter
+    private enum Direction
+    {
+        IN(">"),
+        OUT("<");
+
+        private final String text;
+
+
+        Direction(String text)
+        {
+            this.text = text;
+        }
+    }
+
+
+    @BeforeEach
+    void setUp()
+    {
+        for (long tokenId = 0; tokenId < COUNT_TOKEN_IDS; tokenId++)
+        {
+            this.countWaiting.add(new AtomicLong(0));
+        }
+    }
 
 
     @Test
@@ -100,8 +127,7 @@ class UpdatableConcurrentMapTest
 
     private Token getToken(Long tokenId)
     {
-        incrementWaiting(tokenId);
-        logIn(tokenId);
+        logIn(incrementWaiting(tokenId), tokenId);
 
         Took took = null;
         Token token = null;
@@ -113,54 +139,32 @@ class UpdatableConcurrentMapTest
         }
         finally
         {
-            decrementWaiting(tokenId);
-            logOut(token, took.getDuration());
+            logOut(decrementWaiting(tokenId), token, took.getDuration());
         }
     }
 
 
-    private void incrementWaiting(Long tokenId)
+    private long incrementWaiting(Long tokenId)
     {
-        if (tokenId == 5)
-        {
-            this.countWaiting.incrementAndGet();
-        }
+        return this.countWaiting.get(Math.toIntExact(tokenId)).incrementAndGet();
     }
 
 
-    private void decrementWaiting(Long tokenId)
+    private long decrementWaiting(Long tokenId)
     {
-        if (tokenId == 5)
-        {
-            this.countWaiting.decrementAndGet();
-        }
+        return this.countWaiting.get(Math.toIntExact(tokenId)).decrementAndGet();
     }
 
 
-    private void logIn(Long tokenId)
+    private void logIn(Long countWaiting, Long tokenId)
     {
-        if (tokenId == 5)
-        {
-            log.debug("getToken({}) <== IN, waiting: {}", getTokenImage(tokenId), this.countWaiting.get());
-        }
-        else
-        {
-            log.debug("getToken({}) IN", getTokenImage(tokenId));
-        }
+        log.debug("getToken({}) IN({})", getTokenImage(tokenId, Direction.IN, countWaiting), countWaiting);
     }
 
 
-    private void logOut(Token token, long duration)
+    private void logOut(Long countWaiting, Token token, long duration)
     {
-        if (token.getId() == 5)
-        {
-            log.debug("getToken({}) <== OUT took {} ms - {}, waiting: {}", getTokenImage(token.getId()), duration,
-                token.getInfo(), this.countWaiting.get());
-        }
-        else
-        {
-            log.debug("getToken({}) OUT took {} ms - {}", getTokenImage(token.getId()), duration, token.getInfo());
-        }
+        log.debug("getToken({}) OUT({}), took {} ms - {}", getTokenImage(token.getId(), Direction.OUT, countWaiting), countWaiting, duration, token.getInfo());
     }
 
 
@@ -184,21 +188,37 @@ class UpdatableConcurrentMapTest
     }
 
 
-    private static String getTokenImage(Long tokenId)
+    private static String getTokenImage(Long tokenId, Direction direction, Long countWaiting)
     {
         // |0|1|2|3|4|5|6|7|8|9|
         // | | | | | |X| | | | |
         StringBuffer sb = new StringBuffer();
         sb.append(tokenId);
         sb.append(" |");
-        sb.append("   |".repeat(Math.toIntExact(tokenId)));
-        sb.append(tokenId != 5 ? " X " : " O ");
+        sb.append(getFillString(tokenId).repeat(Math.toIntExact(tokenId)));
+        sb.append(getContentString(direction, countWaiting));
         sb.append("|");
         if (9 - tokenId > 0)
         {
-            sb.append("   |".repeat(Math.toIntExact(9 - tokenId)));
+            sb.append(getFillString(tokenId).repeat(Math.toIntExact(9 - tokenId)));
         }
         return sb.toString();
+    }
+
+
+    private static String getFillString(Long tokenId)
+    {
+        if (tokenId == 5)
+        {
+            return "---|";
+        }
+        return "   |";
+    }
+
+
+    private static String getContentString(Direction direction, Long countWaiting)
+    {
+        return String.format("%s%02d", direction.getText(), countWaiting);
     }
 
 

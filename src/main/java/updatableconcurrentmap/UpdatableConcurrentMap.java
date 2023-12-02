@@ -18,16 +18,42 @@ package updatableconcurrentmap;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 @Slf4j
 public class UpdatableConcurrentMap<K, V extends UpdatableEntity>
 {
-    private final ConcurrentMap<K, ReentrantLock> locks = new ConcurrentHashMap<>();
-    private final ConcurrentMap<K, V> values = new ConcurrentHashMap<>();
+    private final Map<K, ReentrantLock> locks = new ConcurrentHashMap<>();
+    private final Map<K, V> values;
+
+
+    public UpdatableConcurrentMap()
+    {
+        this.values = Collections.synchronizedMap(new LinkedHashMap<>());
+    }
+
+
+    public UpdatableConcurrentMap(Integer maxCapacity)
+    {
+        this.values = Collections.synchronizedMap(new LinkedHashMap<>()
+        {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest)
+            {
+                boolean toRemove = this.size() >= maxCapacity;
+                if (toRemove)
+                {
+                    log.debug("Max capacity reached, removing {}", eldest.getKey());
+                }
+                return toRemove;
+            }
+        });
+    }
 
 
     public V get(K key)
