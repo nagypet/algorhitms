@@ -14,9 +14,31 @@
  * limitations under the License.
  */
 
-package updatableconcurrentmap;
+package inmemorycache;
 
-public interface UpdatableEntity
+import java.util.concurrent.locks.Lock;
+
+public class ClosableLock implements AutoCloseable
 {
-    boolean isValid();
+    private final Lock lock;
+
+
+    public ClosableLock(Lock lock)
+    {
+        this.lock = lock;
+        if (lock != null)
+        {
+            lock.lock(); // NOSONAR: Sonar think this lock should be unlocked, but this is done in the close method. :-)
+        }
+    }
+
+
+    @Override
+    public void close()
+    {
+        if (this.lock != null)
+        {
+            this.lock.unlock();
+        }
+    }
 }

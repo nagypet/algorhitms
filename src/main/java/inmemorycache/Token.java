@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package updatableconcurrentmap;
+package inmemorycache;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ import java.util.StringJoiner;
 
 @RequiredArgsConstructor
 @Getter
-public class Token implements UpdatableEntity
+public class Token implements CacheableEntity
 {
     private final Long id;
     private final long expiresAt;

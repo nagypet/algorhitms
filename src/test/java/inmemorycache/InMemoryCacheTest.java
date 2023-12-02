@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package updatableconcurrentmap;
+package inmemorycache;
 
 import hu.perit.spvitamin.core.took.Took;
 import lombok.AccessLevel;
@@ -39,12 +39,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 @Slf4j
-class UpdatableConcurrentMapTest
+class InMemoryCacheTest
 {
     public static final int COUNT_PARALLEL_EXECUTORS = 10;
     public static final int COUNT_TOKEN_IDS = 10;
 
-    private final UpdatableConcurrentMap<Long, Token> tokenCache = new UpdatableConcurrentMap<>();
+    private final InMemoryCache<Long, Token> tokenCache = new InMemoryCache<>();
 
     private final CountDownLatch latch = new CountDownLatch(1);
 

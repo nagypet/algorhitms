@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package updatableconcurrentmap;
+package inmemorycache;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,19 +26,19 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 @Slf4j
-public class UpdatableConcurrentMap<K, V extends UpdatableEntity>
+public class InMemoryCache<K, V extends CacheableEntity>
 {
     private final Map<K, ReentrantLock> locks = new ConcurrentHashMap<>();
     private final Map<K, V> values;
 
 
-    public UpdatableConcurrentMap()
+    public InMemoryCache()
     {
         this.values = Collections.synchronizedMap(new LinkedHashMap<>());
     }
 
 
-    public UpdatableConcurrentMap(Integer maxCapacity)
+    public InMemoryCache(Integer maxCapacity)
     {
         this.values = Collections.synchronizedMap(new LinkedHashMap<>()
         {
